@@ -40,4 +40,59 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    /* A Register
+     * 1. ALU to A register: there is only one possibility
+     *     C instruction & write to A register
+     * 2. A instruction
+     */
+    Not(in=instruction[15], out=isAinstruction);
+    Not(in=isAinstruction,  out=isCinstruction);
+
+    And(a=isCinstruction, b=instruction[5], out=selALUout);
+
+    Mux16(a=instruction, b=ALUout, sel=selALUout, out=Aregin);
+    Or(a=isAinstruction, b=selALUout, out=loadAreg);
+    ARegister(in=Aregin, load=loadAreg, out=Aregout);
+
+    // D Register
+    And(a=isCinstruction, b=instruction[4], out=loadd);
+    DRegister(in=ALUout, load=loadd, out=Dregout);
+
+    // ALU
+    Mux16(a=Aregout, b=inM, sel=instruction[12], out=AMout);
+
+    ALU(x=Dregout, y=AMout, zx=instruction[11], nx=instruction[10], zy=instruction[9], 
+        ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, zr=ZRout, ng=NGout);
+
+
+    //outM
+    Or16(a=false, b=ALUout, out=outM);
+    // writeM
+    // c instruction& instruction[3] == 1
+    And(a=isCinstruction, b=instruction[3], out=writeM);
+    // addressM
+    Or16(a=false, b=Aregout, out[0..14]=addressM);
+
+    // PC
+    // seven cases that need to jump:
+    // no need to care about JMP and null
+    // JEQ
+    And(a=ZRout, b=instruction[1], out=jmpeq);
+    // JLT JLE JNE
+    And(a=NGout, b=instruction[2], out=jmplt);
+    // JGT JGE
+    Or(a=ZRout, b=NGout, out=NPout);
+    Not(in=NPout, out=PSout);
+    And(a=PSout, b=instruction[0], out=jmpgt);
+    
+    Or(a=jmpeq, b=jmplt, out=jmple);
+    Or(a=jmple, b=jmpgt, out=jmptoA);
+    // Don't forget it should be a C-instruction
+    And(a=jmptoA, b=isCinstruction, out=pcload);
+
+    // If we don't jump then we incre
+    Not(in=pcload, out=pcInc);
+
+    PC(in=Aregout, load=pcload, inc=pcInc, reset=reset, out[0..14]=pc);
 }
