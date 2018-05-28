@@ -6,9 +6,15 @@ import sys
 
 class Parser(object):
 
-    C_ARITHMETIC = 0
-    C_PUSH       = 1
-    C_POP        = 2
+    C_ARITHMETIC    = 0
+    C_PUSH          = 1
+    C_POP           = 2
+    C_LABAL         = 3
+    C_GOTO          = 4
+    C_IF            = 5
+    C_FUNCTION      = 6
+    C_RETURN        = 7
+    C_CALL          = 8
 
     arithmetics = ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']
     _cmd_type = -1
@@ -34,14 +40,14 @@ class Parser(object):
             if new_command == '':
                 return ''
             else:
-                tokens = new_command.split(' ')
+                tokens = new_command.split()
                 if tokens[0] in self.arithmetics:
                     self._cmd_type = self.C_ARITHMETIC
                     return tokens
                 elif tokens[0] == 'push':
                     self._cmd_type = self.C_PUSH
                     return tokens
-                elif tokens[1] == 'pop':
+                elif tokens[0] == 'pop':
                     self._cmd_type = self.C_POP
                     return tokens
         else:
@@ -57,9 +63,9 @@ class Parser(object):
         _new_line = _comment_pattern_2.sub('', _comment_pattern_1.sub('', line))
         return _new_line
 
-    def test(self):
+    def output(self):
         while(self.has_more_commands):
             val = self.advance()
             if val != '':
-                print(self.get_command_type())
+                #print("command type: " + str(self.get_command_type()))
                 print(val)
