@@ -32,6 +32,7 @@ class CodeWriter(object):
             elif tokens[1] == 'that':           self._push_segment('THAT', tokens[2])
             elif tokens[1] == 'temp':           self._push_segment('temp', tokens[2])
             elif tokens[1] == 'pointer':        self._push_pointer(tokens[2])
+            elif tokens[1] == 'static':         self._push_segment('static', tokens[2])
         elif tokens[0] == 'pop':
             if tokens[1] == 'local':            self._pop_segment('LCL', tokens[2])
             elif tokens[1] == 'argument':       self._pop_segment('ARG', tokens[2])
@@ -39,6 +40,7 @@ class CodeWriter(object):
             elif tokens[1] == 'that':           self._pop_segment('THAT', tokens[2])
             elif tokens[1] == 'temp':           self._pop_segment('temp', tokens[2])
             elif tokens[1] == 'pointer':        self._pop_pointer(tokens[2])
+            elif tokens[1] == 'static':         self._pop_segment('static', tokens[2])
 
 
     def _push_pointer(self, value):
@@ -77,11 +79,12 @@ class CodeWriter(object):
                     '    M=M+1\n'                   
         self._new_file.write(new_str)
 
-
     def _push_segment(self, segment, value):
         self._new_file.write('//push ' + segment + ' ' + value + '\n')
-        if segment == 'temp':       
+        if segment == 'temp':
             new_str = '    @5\n' + '    D=A\n'
+        elif segment == 'static':
+            new_str = '    @16\n' + '    D=A\n'
         else:                       
             new_str = '    @' + segment + '\n' + '    D=M\n'
         new_str +=  '    @' + value + '\n'      +\
@@ -99,6 +102,8 @@ class CodeWriter(object):
         self._new_file.write('//pop ' + segment + ' ' + value + '\n')
         if segment == 'temp':       
             pt_seg = '    @5\n' + '    D=A\n'
+        elif segment == 'static':
+            pt_seg = '    @16\n' + '    D=A\n'
         else:
             pt_seg = '    @' + segment + '\n' + '    D=M\n'
         new_str =   '    @SP\n'                 +\
