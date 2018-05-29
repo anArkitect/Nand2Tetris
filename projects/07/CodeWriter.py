@@ -1,4 +1,5 @@
 
+# R15: FOR COPY
 
 class CodeWriter(object):
 
@@ -24,19 +25,46 @@ class CodeWriter(object):
     # Segments: constant + local + argument + this + that + temp
     def write_push_pop(self, tokens):
         if tokens[0] == 'push':
-            if tokens[1] == 'constant':     self._push_constant(tokens[2])
-            if tokens[1] == 'local':        self._push_segment('LCL', tokens[2])
-            if tokens[1] == 'argument':     self._push_segment('ARG', tokens[2])
-            if tokens[1] == 'this':         self._push_segment('THIS', tokens[2])
-            if tokens[1] == 'local':        self._push_segment('THAT', tokens[2])
-            if tokens[1] == 'temp':         self._push_segment('temp', tokens[2])
+            if tokens[1] == 'constant':         self._push_constant(tokens[2])
+            elif tokens[1] == 'local':          self._push_segment('LCL', tokens[2])
+            elif tokens[1] == 'argument':       self._push_segment('ARG', tokens[2])
+            elif tokens[1] == 'this':           self._push_segment('THIS', tokens[2])
+            elif tokens[1] == 'that':           self._push_segment('THAT', tokens[2])
+            elif tokens[1] == 'temp':           self._push_segment('temp', tokens[2])
+            elif tokens[1] == 'pointer':        self._push_pointer(tokens[2])
         elif tokens[0] == 'pop':
-            if tokens[1] == 'constant':     self._pop_constant(tokens[2])
-            if tokens[1] == 'local':        self._pop_segment('LCL', tokens[2])
-            if tokens[1] == 'argument':     self._pop_segment('ARG', tokens[2])
-            if tokens[1] == 'this':         self._pop_segment('THIS', tokens[2])
-            if tokens[1] == 'local':        self._pop_segment('THAT', tokens[2])
-            if tokens[1] == 'temp':         self._pop_segment('temp', tokens[2])
+            if tokens[1] == 'local':            self._pop_segment('LCL', tokens[2])
+            elif tokens[1] == 'argument':       self._pop_segment('ARG', tokens[2])
+            elif tokens[1] == 'this':           self._pop_segment('THIS', tokens[2])
+            elif tokens[1] == 'that':           self._pop_segment('THAT', tokens[2])
+            elif tokens[1] == 'temp':           self._pop_segment('temp', tokens[2])
+            elif tokens[1] == 'pointer':        self._pop_pointer(tokens[2])
+
+
+    def _push_pointer(self, value):
+        if value == '0':
+            new_str =   '    @3\n'
+        elif value == '1':
+            new_str =   '    @4\n'
+        new_str +=      '    D=M\n'             +\
+                        '    @SP\n'             +\
+                        '    A=M\n'             +\
+                        '    M=D\n'             +\
+                        '    @SP\n'             +\
+                        '    M=M+1\n'
+        self._new_file.write(new_str)
+
+    def _pop_pointer(self, value):
+        if value == '0':
+            get_ptr =   '    @3\n'
+        elif value == '1':
+            get_ptr =   '    @4\n'
+        new_str =       '    @SP\n'             +\
+                        '    AM=M-1\n'          +\
+                        '    D=M\n'             +\
+                        get_ptr                 +\
+                        '    M=D\n'             
+        self._new_file.write(new_str)
 
     def _push_constant(self, value):
         self._new_file.write('//push constant ' + value + '\n')
@@ -52,10 +80,11 @@ class CodeWriter(object):
 
     def _push_segment(self, segment, value):
         self._new_file.write('//push ' + segment + ' ' + value + '\n')
-        if segment == 'temp':       new_str = '    @5\n'
-        else:                       new_str = '    @' + segment + '\n'
-        new_str +=  '    D=A\n'                 +\
-                    '    @' + value + '\n'      +\
+        if segment == 'temp':       
+            new_str = '    @5\n' + '    D=A\n'
+        else:                       
+            new_str = '    @' + segment + '\n' + '    D=M\n'
+        new_str +=  '    @' + value + '\n'      +\
                     '    A=A+D\n'               +\
                     '    D=M\n'                 +\
                     '    @SP\n'                 +\
@@ -64,14 +93,30 @@ class CodeWriter(object):
                     '    @SP\n'                 +\
                     '    M=M+1\n'
         self._new_file.write(new_str)
-    
-    #TODO
-    def _pop_constant(self, value):
-        pass
 
     #TODO
     def _pop_segment(self, segment, value):
-        pass
+        self._new_file.write('//pop ' + segment + ' ' + value + '\n')
+        if segment == 'temp':       
+            pt_seg = '    @5\n' + '    D=A\n'
+        else:
+            pt_seg = '    @' + segment + '\n' + '    D=M\n'
+        new_str =   '    @SP\n'                 +\
+                    '    AM=M-1\n'              +\
+                    '    D=M\n'                 +\
+                    '    @R15\n'                +\
+                    '    M=D\n'                 +\
+                    pt_seg                      +\
+                    '    @' + value + '\n'      +\
+                    '    D=A+D\n'               +\
+                    '    @R14\n'                +\
+                    '    M=D\n'                 +\
+                    '    @R15\n'                +\
+                    '    D=M\n'                 +\
+                    '    @R14\n'                +\
+                    '    A=M\n'                 +\
+                    '    M=D\n'
+        self._new_file.write(new_str)
 
     def close(self):
         self._new_file.close()
